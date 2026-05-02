@@ -26,14 +26,16 @@ This file provides project guidance for coding agents working in this repository
 
 This is a Go application built with production-grade patterns and agent-ready tooling. Update this section to describe your project.
 
+**Toolchain pin:** Go **1.26.2** (managed via `mise.toml` + `.go-version`), Bun **1.3.4** (`.bun-version`), `golangci-lint v2.11.4`, `gotestsum v1.13.0`, `gopls/modernize v0.21.1`, `goreleaser v2.6.1`. Run `mise install` to provision everything.
+
 ## Package Layout
 
-| Path               | Responsibility                  |
-| ------------------ | ------------------------------- |
-| `cmd/app`          | Main entry point and CLI wiring |
-| `internal/config`  | Config loading and validation   |
-| `internal/version` | Build metadata                  |
-| `internal/logger`  | Structured logging setup        |
+| Path               | Responsibility                                     |
+| ------------------ | -------------------------------------------------- |
+| `cmd/app`          | Main entry point and CLI wiring                    |
+| `internal/config`  | Config loading and validation                      |
+| `internal/version` | Build metadata (Version, Commit, BuildDate via -X) |
+| `internal/logger`  | Structured logging setup                           |
 
 ## Build & Development Commands
 
@@ -41,15 +43,46 @@ This is a Go application built with production-grade patterns and agent-ready to
 # Full verification pipeline (BLOCKING GATE for any change)
 make verify              # Serial: fmt -> lint -> test -> build
 
-# Individual steps
-make fmt                 # Format with gofmt
-make lint                # Strict golangci-lint (zero issues tolerance)
-make test                # Run tests with -race flag
-make build               # Compile binary
+# Go pipeline
+make fmt                 # gofmt every .go file
+make lint                # golangci-lint v2 + gopls modernize (zero-tolerance)
+make modernize           # gopls modernize idioms only
+make test                # gotestsum + -race -parallel=4
+make test-integration    # tests with `-tags integration`
+make cover               # coverage.out + coverage.html
+make build               # bin/app with version ldflags
 
-# Dependency management
-make deps                # Tidy and verify modules
+# Dependencies and tools
+make deps                # go mod tidy + verify
+make tools               # install gotestsum, golangci-lint, modernize, goreleaser
+
+# JS/TS toolchain (for hooks + non-Go files)
+make bun-lint            # oxfmt + oxlint
+make bun-fmt             # apply oxfmt
+make bun-fmt-check       # check oxfmt without writing
+
+# Hooks and release
+make hooks-install       # husky install (requires `bun install` first)
+make release-snapshot    # local goreleaser snapshot under dist/
+make docker-build        # build distroless container
 ```
+
+## Hooks & Conventional Commits
+
+- `pre-commit`: runs `lint-staged` — `make fmt` for `*.go`, `oxfmt`+`oxlint` for JS/TS, `oxfmt` for CSS/HTML/JSON/YAML/MD.
+- `commit-msg`: enforced by `commitlint` with `@commitlint/config-conventional`.
+- Allowed types: `build, chore, ci, docs, feat, fix, perf, refactor, test`. Scope is optional.
+- Bootstrap: `bun install && make hooks-install` after cloning.
+
+## Release Flow
+
+Releases are tag-driven. Push a `v*` tag to trigger `.github/workflows/release.yml`:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+Goreleaser (community v2) produces multi-OS/arch binaries (linux/darwin/windows × amd64/arm64), tarballs/zip archives, checksums, source tarball, and an auto-generated changelog. Optional channels (Homebrew tap, deb/rpm via nfpm, cosign signing, SBOMs) are scaffolded as commented blocks in `.goreleaser.yml`.
 
 ## CRITICAL: Git Commands Restriction
 

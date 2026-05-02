@@ -77,11 +77,9 @@ func runCommand(args []string) error {
 	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 	launch := func(fn func() error) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			errCh <- fn()
-		}()
+		})
 	}
 	_ = launch
 
