@@ -16,7 +16,7 @@ internal `compozy/agh` stack.
 
 ## Prerequisites
 
-- [mise](https://mise.jdx.dev/) (recommended) or Go 1.26.2 + Bun 1.3.4
+- [mise](https://mise.jdx.dev/) (recommended) or Go 1.26.2 + Bun 1.4.4
 - `git`
 - `make`
 
